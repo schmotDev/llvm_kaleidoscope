@@ -21,6 +21,8 @@ enum Token {
   tok_number = -5
 };
 
-static std::string IdentifierStr; // Filled in if tok_identifier
-static double NumVal;             // Filled in if tok_number
+static std::string IdentifierStr; // will store value of identifier if tok_identifier has been found by lexer
+static double NumVal;             // will store value of number if tok_number has been found by lexer
+
+
 
