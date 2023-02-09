@@ -269,7 +269,7 @@ std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
 
 
 //===----------------------------------------------------------------------===//
-// basic expressions parsing
+// basic expressions parsing ( Primary Expressions)
 
 /// numberexpr ::= number
 // will be called when current token is tok_number (-5)
@@ -349,7 +349,47 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 }
 
 
+// function to parse the "primary" expressions defined above
+/// primary
+///   ::= identifierexpr
+///   ::= numberexpr
+///   ::= parenexpr
+static std::unique_ptr<ExprAST> ParsePrimary() {
+  switch (CurTok) {
+  default:
+    return LogError("unknown token when expecting an expression");
+  case tok_identifier:
+    return ParseIdentifierExpr();
+  case tok_number:
+    return ParseNumberExpr();
+  case '(':
+    return ParseParenExpr();
+  }
+}
 
+
+//===----------------------------------------------------------------------===//
+// Binary expressions parsing ( complex Expressions) with operator precedence
+
+
+//===----------------------------------------------------------------------===//
+// binary operator precedence 
+
+/// BinopPrecedence - This holds the precedence for each binary operator that is
+/// defined.
+static std::map<char, int> BinopPrecedence;
+
+/// GetTokPrecedence - Get the precedence of the pending binary operator token.
+static int GetTokPrecedence() {
+  if (!isascii(CurTok))
+    return -1;
+
+  // Make sure it's a declared binop.
+  int TokPrec = BinopPrecedence[CurTok];
+  if (TokPrec <= 0) return -1;
+  return TokPrec;
+}
+//===----------------------------------------------------------------------===//
 
 
 
@@ -357,6 +397,16 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 // we call gettok and print
 
 int main() {
+
+
+  // Install standard binary operators.
+  // 1 is lowest precedence.
+  BinopPrecedence['<'] = 10;
+  BinopPrecedence['+'] = 20;
+  BinopPrecedence['-'] = 20;
+  BinopPrecedence['*'] = 40; // highest.
+
+
     while (true) {
         int tok = gettok();
         cout << "got token: " << tok << endl;
