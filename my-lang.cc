@@ -244,6 +244,111 @@ public:
 
 
 
+//===----------------------------------------------------------------------===//
+// Parser ( will generate our Abstract Syntax Tree)
+//===----------------------------------------------------------------------===//
+
+/// CurTok/getNextToken - Provide a simple token buffer.  CurTok is the current
+/// token the parser is looking at.  getNextToken reads another token from the
+/// lexer and updates CurTok with its results.
+// this way we can have a look at a token, and the next token ahead
+static int CurTok;
+static int getNextToken() { return CurTok = gettok(); }
+
+
+// routines for error handling
+/// LogError* - These are little helper functions for error handling.
+std::unique_ptr<ExprAST> LogError(const char *Str) {
+  fprintf(stderr, "Error: %s\n", Str);
+  return nullptr;
+}
+std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
+  LogError(Str);
+  return nullptr;
+}
+
+
+//===----------------------------------------------------------------------===//
+// basic expressions parsing
+
+/// numberexpr ::= number
+// will be called when current token is tok_number (-5)
+// it takes the the current number value, creates a NumberExpreAST node,
+// move the lexer to next token, and returns
+static std::unique_ptr<ExprAST> ParseNumberExpr() {
+  auto Result = std::make_unique<NumberExprAST>(NumVal);
+  getNextToken(); // consume the number
+  return std::move(Result);
+}
+
+// the routine "eats" all the of th etoken that correspond to the production
+// and returns the lexer buffer with the next token (which is not part of this production)
+// standard way of recursive descent parsers
+
+/// parenexpr ::= '(' expression ')'
+static std::unique_ptr<ExprAST> ParseParenExpr() {
+  getNextToken(); // eat (.
+  auto V = ParseExpression();
+  if (!V)
+    return nullptr;
+
+  if (CurTok != ')')
+    return LogError("expected ')'");
+  getNextToken(); // eat ).
+  return V;
+}
+
+// after we read '(' we call ParseExpression() = recursive
+// ParseExpression will be able to call ParseParenExpr, etc etc
+// this provide recursive grammar
+
+// the '()' do not create AST nodes. the '()' only guide the parser providig grouping
+// once the parser constructs the AST, '()' are not needed
+
+
+
+// identifier can be varable name of function call
+// we check if we find a '(' to make the difference
+// constructing either a VariableExprAST or CallExprAST node as appropriate
+// if we work on function call we need to read the args with the loop
+
+/// identifierexpr
+///   ::= identifier
+///   ::= identifier '(' expression* ')'
+static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
+  std::string IdName = IdentifierStr;
+
+  getNextToken();  // eat identifier.
+
+  if (CurTok != '(') // Simple variable ref.
+    return std::make_unique<VariableExprAST>(IdName);
+
+  // Call.
+  getNextToken();  // eat (
+  std::vector<std::unique_ptr<ExprAST>> Args;
+  if (CurTok != ')') {
+    while (true) {
+      if (auto Arg = ParseExpression())
+        Args.push_back(std::move(Arg));
+      else
+        return nullptr;
+
+      if (CurTok == ')')
+        break;
+
+      if (CurTok != ',')
+        return LogError("Expected ')' or ',' in argument list");
+      getNextToken();
+    }
+  }
+
+  // Eat the ')'.
+  getNextToken();
+
+  return std::make_unique<CallExprAST>(IdName, std::move(Args));
+}
+
+
 
 
 
