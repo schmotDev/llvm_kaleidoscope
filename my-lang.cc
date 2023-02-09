@@ -70,7 +70,7 @@ static int gettok() {
   // then we read the next char
   // while we find a digit or a "." we loop again
   // NOTE: this will accept entries such as 12.222.34.23
-  // finally we convert our string to double and retunr the value 
+  // finally we convert our string to double and return the value 
 
   if (isdigit(LastChar) || LastChar == '.') {   // Number: [0-9.]+
     std::string NumStr;
