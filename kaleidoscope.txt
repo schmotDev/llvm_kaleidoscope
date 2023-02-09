@@ -1,0 +1,17 @@
+Lexical:
+
+2 "reserved" words for our language:
+- extern = instruction to add external code
+- def = to define a function
+
+we can have
+- identifier
+- number
+
+identifier can be variable name
+identifier can be a function name
+
+number are float only (double)
+can be written as x.xx or .xx
+(have to check the lexer as it will accept xx.xx.xx )
+
