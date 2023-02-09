@@ -1,4 +1,16 @@
 #include <string>
+#include <iostream>
+
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+using namespace std;
+
 
 
 
@@ -36,6 +48,12 @@ static double NumVal;             // will store value of number if tok_number ha
 // #     = it's a comment
 // EOF   = we stop reading
 
+// in each check function, we move to the next char with a call to getchar()
+// we call getchar(), check the value, and if the char is part of the token we loop
+// if niot we just go out, but we are postionned on the next char
+// at the end we make a single call to getchar() before we return the operator
+
+
 static int gettok() {
   static int LastChar = ' ';
 
@@ -66,7 +84,7 @@ static int gettok() {
 
   // if the first char is a digit or a ".",
   // we initialize a string
-  // we start a loop, first adding the lñast char to our string
+  // we start a loop, first adding the last char to our string
   // then we read the next char
   // while we find a digit or a "." we loop again
   // NOTE: this will accept entries such as 12.222.34.23
@@ -86,6 +104,8 @@ static int gettok() {
 
   // if the char is a # then we found a comment
   // we read the next char and loop while we don't find EOF, EOL or CR
+  // after the loop, is the char is not EOF, we call recursively the function
+  // as we just skipped what was read, we start again
   if (LastChar == '#') {
     // Comment until end of line.
     do
@@ -111,3 +131,131 @@ static int gettok() {
 //===----------------------------------------------------------------------===//
 // End of the Lexer
 //===----------------------------------------------------------------------===//
+
+
+
+//===----------------------------------------------------------------------===//
+// Abstract Syntax Tree (aka Parse Tree)
+//===----------------------------------------------------------------------===//
+
+
+// The AST is the ouput of the Parser
+// The AST for a given program to be analyzed, will capture its behaviour
+// so it can be easily interpreted (by the compiler)
+// We want one object for each of the construct of the language
+// In Kaleidoscope, we have expressions, a prototype, and a function object
+
+/// ExprAST - Base class for all expression nodes.
+class ExprAST {
+public:
+  virtual ~ExprAST() = default;
+};
+
+
+/// NumberExprAST - Expression class for numeric literals like "1.0".
+class NumberExprAST : public ExprAST {
+  double Val;
+
+public:
+  NumberExprAST(double paramVal) : Val(paramVal) {}
+};
+// *******   C++ specific:   ***************
+// ": Val(paramVal)" is equivalent to "this.Val = paramVal;" like in other languages
+
+
+/// VariableExprAST - Expression class for referencing a variable, like "a".
+class VariableExprAST : public ExprAST {
+  std::string Name;
+
+public:
+  VariableExprAST(const std::string &paramName) : Name(paramName) {}
+};
+// we use the reference of paramName = more efficient
+// we declare as constant just to make sure we don't modify the value in this sub-function
+
+
+// BinaryExprAST - Expression class for a binary operator.
+// LHS = left hand side
+// RHS = right hand side
+class BinaryExprAST : public ExprAST {
+  char Op; // can be + - * / < >
+  std::unique_ptr<ExprAST> LHS;
+  std::unique_ptr<ExprAST> RHS;
+
+// ********* C++ specific:  ********************
+// the std:unique_ptr is a smart pointer = no need to clean up with a destructor
+
+public:
+  BinaryExprAST(char param_Op, std::unique_ptr<ExprAST> param_LHS,
+                std::unique_ptr<ExprAST> param_RHS)
+    : Op(param_Op), LHS(std::move(param_LHS)), RHS(std::move(param_RHS)) {}
+};
+
+// ********* C++ specific:  ********************
+// std:move(param) is taking a copy but also saying to compiler that the original can be destroyed
+// it's more like swaping values than copying values
+// we do this here because we don't need the original LHS and HDS anymore after getting the values
+
+
+/// CallExprAST - Expression class for function calls.
+// callee is the name of the function being called
+
+class CallExprAST : public ExprAST {
+  std::string Callee;
+  std::vector<std::unique_ptr<ExprAST>> Args;
+
+public:
+  CallExprAST(const std::string &param_Callee,
+              std::vector<std::unique_ptr<ExprAST>> param_Args)
+    : Callee(param_Callee), Args(std::move(param_Args)) {}
+};
+
+
+/// PrototypeAST - This class represents the "prototype" for a function,
+/// which captures its name, and its argument names (thus implicitly the number
+/// of arguments the function takes).
+class PrototypeAST {
+  std::string Name;
+  std::vector<std::string> Args;
+
+public:
+  PrototypeAST(const std::string &param_Name, std::vector<std::string> param_Args)
+    : Name(param_Name), Args(std::move(param_Args)) {}
+
+  const std::string &getName() const { return Name; }
+};
+
+/// FunctionAST - This class represents a function definition itself.
+class FunctionAST {
+  std::unique_ptr<PrototypeAST> Proto;
+  std::unique_ptr<ExprAST> Body;
+
+public:
+  FunctionAST(std::unique_ptr<PrototypeAST> param_Proto,
+              std::unique_ptr<ExprAST> param_Body)
+    : Proto(std::move(param_Proto)), Body(std::move(param_Body)) {}
+};
+
+
+
+//===----------------------------------------------------------------------===//
+// END OF Abstract Syntax Tree (aka Parse Tree)
+//===----------------------------------------------------------------------===//
+
+
+
+
+
+
+
+// single main function
+// we call gettok and print
+
+int main() {
+    while (true) {
+        int tok = gettok();
+        cout << "got token: " << tok << endl;
+    }
+}
+
+
